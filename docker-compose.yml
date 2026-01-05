@@ -1,0 +1,51 @@
+version: '3.4'
+services:
+  db16:
+    image: postgres:16
+    deploy:
+      resources:
+        reservations:
+          memory: 1G
+        limits:
+          memory: 2G
+    shm_size: '2gb'
+    user: root
+    environment:
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=husam@246
+      - POSTGRES_DB=postgres
+    restart: always             # run as a service
+    volumes:
+        - ./postgresql:/var/lib/postgresql/data
+
+  odoo19:
+    image: odoo:19
+    deploy:
+      resources:
+        reservations:
+          memory: 2G
+        limits:
+          memory: 4G
+    shm_size: '2gb'
+    user: root
+    depends_on:
+      - db16
+    ports:
+      - "10019:8069"
+      - "20019:8072" # live chat
+    tty: true
+    command: --
+    environment:
+      - HOST=db16
+      - USER=odoo
+      - PASSWORD=husam@246
+    volumes:
+      #- /etc/timezone:/etc/timezone:trt
+      #- /etc/localtime:/etc/localtime:trt
+      # - ./entrypoint.sh:/entrypoint.sh   # if you want to install additional Python packages, uncomment this line!
+      - ./addons:/mnt/extra-addons
+      - ./etc:/etc/odoo
+      - ./backup:/mnt/backup
+      - ./enterprise:/mnt/enterprise
+    restart: always             # run as a service
+    
