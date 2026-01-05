@@ -1,51 +1,50 @@
-version: '3.4'
+version: '3.8'
 services:
-  db16:
+  db:
     image: postgres:16
-    deploy:
-      resources:
-        reservations:
-          memory: 1G
-        limits:
-          memory: 2G
-    shm_size: '2gb'
     user: root
     environment:
       - POSTGRES_USER=odoo
-      - POSTGRES_PASSWORD=husam@246
+      - POSTGRES_PASSWORD=odoo19@2026
       - POSTGRES_DB=postgres
-    restart: always             # run as a service
+    restart: always
     volumes:
-        - ./postgresql:/var/lib/postgresql/data
+      - ./postgresql19:/var/lib/postgresql/data
+    ports:
+      - "5193:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "log_lock_waits=on"
 
   odoo19:
     image: odoo:19
-    deploy:
-      resources:
-        reservations:
-          memory: 2G
-        limits:
-          memory: 4G
-    shm_size: '2gb'
     user: root
     depends_on:
-      - db16
+      - db
     ports:
-      - "10019:8069"
-      - "20019:8072" # live chat
+      - "19003:8069"
+      - "29003:8072"
     tty: true
-    command: --
     environment:
-      - HOST=db16
+      - HOST=db
       - USER=odoo
-      - PASSWORD=husam@246
+      - PASSWORD=odoo19@2026
+      - LANG=en_US.UTF-8
+      - LC_ALL=en_US.UTF-8
+    # Install required OS packages + Python packages at container start.
+    # Note: doing installs at runtime makes container start slower. See note below about building a custom image.
+    command: >
+      sh -c "apt-get update &&
+      apt-get install -y python3-pip locales --no-install-recommends &&
+      locale-gen en_US.UTF-8 &&
+      pip install --no-cache-dir --break-system-packages \
+        boto3 dropbox nextcloud-api-wrapper num2words openpyxl pandas \
+        paramiko pyncclient pysftp translate xlrd html2text &&
+      /entrypoint.sh odoo"
     volumes:
-      #- /etc/timezone:/etc/timezone:trt
-      #- /etc/localtime:/etc/localtime:trt
-      # - ./entrypoint.sh:/entrypoint.sh   # if you want to install additional Python packages, uncomment this line!
       - ./addons:/mnt/extra-addons
+      - ./enterprise19:/mnt/enterprise
       - ./etc:/etc/odoo
       - ./backup:/mnt/backup
-      - ./enterprise:/mnt/enterprise
-    restart: always             # run as a service
-    
+    restart: always
